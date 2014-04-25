@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <item name="list_background" type="color">#EC3D3E49</item>
+    <item name="list_header" type="color">#FA8C8E8A</item>
+    <item name="list_divider" type="color">#DD0F0F0F</item>
+    <item name="list_item_title" type="color">#ECF7CD</item>
+
+    <color name="black_overlay">#66000000</color>
+
+</resources>
