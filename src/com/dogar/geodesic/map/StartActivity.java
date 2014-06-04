@@ -47,11 +47,12 @@ import android.widget.Toast;
 
 import com.dogar.geodesic.R;
 import com.dogar.geodesic.adapters.NavDrawerListAdapter;
+import com.dogar.geodesic.screens.AboutInfoDialog;
+import com.dogar.geodesic.screens.DirectProblemActivity;
+import com.dogar.geodesic.screens.UndirectProblemActivity;
 import com.dogar.geodesic.sync.FeedContract;
+import com.dogar.geodesic.sync.SyncAdapter;
 import com.dogar.geodesic.sync.SyncUtils;
-import com.dogar.geodesic.windows.AboutInfoDialog;
-import com.dogar.geodesic.windows.DirectProblemActivity;
-import com.dogar.geodesic.windows.UndirectProblemActivity;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
@@ -188,33 +189,35 @@ public class StartActivity extends Activity {
 		}
 		// Handle action buttons
 		switch (item.getItemId()) {
+		case R.id.delete_mode:
+			reverseCheck(item);
+			GMFragment.setDeleteMode(item.isChecked());
+			return true;
 		case R.id.menu_refresh:
 			SyncUtils.TriggerRefresh();
 			return true;
 		case R.id.map_terrain:
-			if (item.isChecked())
-				item.setChecked(false);
-			else
-				item.setChecked(true);
+			reverseCheck(item);
 			GMFragment.getMap().setMapType(GoogleMap.MAP_TYPE_TERRAIN);
 			return true;
 		case R.id.map_normal:
-			if (item.isChecked())
-				item.setChecked(false);
-			else
-				item.setChecked(true);
+			reverseCheck(item);
 			GMFragment.getMap().setMapType(GoogleMap.MAP_TYPE_NORMAL);
 			return true;
 		case R.id.map_hybrid:
-			if (item.isChecked())
-				item.setChecked(false);
-			else
-				item.setChecked(true);
+			reverseCheck(item);
 			GMFragment.getMap().setMapType(GoogleMap.MAP_TYPE_HYBRID);
 			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
+	}
+
+	private void reverseCheck(MenuItem item) {
+		if (item.isChecked())
+			item.setChecked(false);
+		else
+			item.setChecked(true);
 	}
 
 	@Override
@@ -344,8 +347,7 @@ public class StartActivity extends Activity {
 			startActivity(intentUnd);
 			break;
 		case 4:
-			getContentResolver().delete(FeedContract.Entry.CONTENT_URI, null,
-					null);
+			openDeleteMarkersChooseDialog();
 			break;
 		case 5:
 			GMFragment.clearPins();
@@ -414,4 +416,26 @@ public class StartActivity extends Activity {
 		}
 	};
 
+	private void openDeleteMarkersChooseDialog() {
+		AlertDialog.Builder alert = new AlertDialog.Builder(this);
+		alert.setTitle("Deleting markers");
+		alert.setIcon(R.drawable.ic_tool);
+		alert.setMessage("Do you really want to delete all markers?");
+		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface arg0, int arg1) {
+				getContentResolver().delete(FeedContract.Entry.CONTENT_URI,
+						SyncAdapter.ACCOUNT_FILTER,
+						new String[] { accountName });
+				GMFragment.clearMarkers();
+			}
+		});
+		alert.setNegativeButton("Cancel",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+					}
+				});
+		alert.show();
+	}
 }

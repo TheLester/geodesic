@@ -1,9 +1,12 @@
 package com.dogar.geodesic.map;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.PolygonArea;
@@ -29,10 +32,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dogar.geodesic.R;
+import com.dogar.geodesic.adapters.GeodesicInfoWindowAdapter;
 import com.dogar.geodesic.sync.FeedContract;
 import com.dogar.geodesic.sync.FeedProvider;
 import com.dogar.geodesic.sync.SyncAdapter;
@@ -55,6 +60,13 @@ public class GoogleMapFragment extends Fragment {
 	private final String AREA = "Area:";
 	private final String METERS = " meters";
 	private final String IN_SQUARE = "^2";
+	private final String LATITUDE = "Lat.:";
+	private final String LONGITUDE = "Lon.:";
+	private final String DATE_DEF = "\n--------\nInfo added at ";
+	private final String DEFAULT_TITLE = "Title";
+	private final String DEFAULT_DESCR = "Description";
+	private final int TRUE = 1;
+	private final int FALSE = 0;
 	private final PolygonArea polygonArea = new PolygonArea(Geodesic.WGS84,
 			false);
 	private final List<LatLng> pointsOfPolygons = new ArrayList<LatLng>();
@@ -62,16 +74,21 @@ public class GoogleMapFragment extends Fragment {
 	private final List<Polygon> polygons = new ArrayList<Polygon>();
 
 	private final List<Marker> points = new ArrayList<Marker>();
+	private final Map<Marker, LatLng> tableOfPreviousPositions = new HashMap<Marker, LatLng>();
 	private PolygonOptions polygonOptions;
 	private MarkerOptions pinOptions;
+
 	private TextView areaLabel;
 	private TextView perimeterLabel;
+	private TextView latitudeLabel;
+	private TextView longitudeLabel;
 	private GoogleMap googleMap;
 
 	private SharedPreferences settings;
 	private String accountName;
 	private int pinCounter;
 	private LatLng bufferPoint = new LatLng(0, 0);
+	private boolean isDeleteMode;
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -82,6 +99,8 @@ public class GoogleMapFragment extends Fragment {
 				R.id.map);
 		googleMap = fm.getMap();
 		googleMap.setMyLocationEnabled(true);
+		googleMap.setInfoWindowAdapter(new GeodesicInfoWindowAdapter(
+				getActivity()));
 		setMapLongClickListener();
 		return rootView;
 	}
@@ -90,10 +109,12 @@ public class GoogleMapFragment extends Fragment {
 	public void onViewCreated(View view, Bundle savedInstanceState) {
 		super.onViewCreated(view, savedInstanceState);
 		settings = getActivity().getSharedPreferences("Geodesic", 0);
-		setMapClickListener();
+		setMapClickListeners();
 		drawMarkersFromLocal();
 		areaLabel = (TextView) getView().findViewById(R.id.area_info);
 		perimeterLabel = (TextView) getView().findViewById(R.id.perim_info);
+		latitudeLabel = (TextView) getView().findViewById(R.id.latitude_info);
+		longitudeLabel = (TextView) getView().findViewById(R.id.longitude_info);
 	}
 
 	public void clearPins() {
@@ -113,6 +134,13 @@ public class GoogleMapFragment extends Fragment {
 		perimeterLabel.setText(PERIMETER + 0 + METERS);
 	}
 
+	public void clearMarkers() {
+		for (Marker point : points)
+			point.remove();
+		points.clear();
+		tableOfPreviousPositions.clear();
+	}
+
 	public void clearMapForNewUser() {
 		clearPins();
 		for (Marker point : points)
@@ -125,44 +153,52 @@ public class GoogleMapFragment extends Fragment {
 		return googleMap;
 	}
 
+	public void setDeleteMode(boolean isDeleteMode) {
+		this.isDeleteMode = isDeleteMode;
+	}
+
 	private void drawMarkersFromLocal() {
 		this.accountName = settings.getString("ACCOUNT_NAME", null);
 		Cursor c = getActivity().getContentResolver().query(
 				FeedContract.Entry.CONTENT_URI, SyncAdapter.PROJECTION,
 				SyncAdapter.ACCOUNT_FILTER, new String[] { accountName }, null);
 		while (c.moveToNext()) {
-			Double latitude = c.getDouble(SyncAdapter.COLUMN_LATITUDE);
-			Double longitude = c.getDouble(SyncAdapter.COLUMN_LONGITUDE);
+			Double latitude = Double.valueOf(c
+					.getString(SyncAdapter.COLUMN_LATITUDE));
+			Double longitude = Double.valueOf(c
+					.getString(SyncAdapter.COLUMN_LONGITUDE));
 			Long dateOfInsert = c.getLong(SyncAdapter.COLUMN_DATE_OF_INSERT);
 			String title = c.getString(SyncAdapter.COLUMN_TITLE);
 			String info = c.getString(SyncAdapter.COLUMN_INFO);
-			drawMarker(new LatLng(latitude, longitude), title, info + " "
-					+ new Date(dateOfInsert));
+			drawMarker(new LatLng(latitude, longitude), title, info, new Date(
+					dateOfInsert));
 		}
 	}
 
-	private void setMapClickListener() {
+	private void setMapClickListeners() {
 		googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 
 			@Override
 			public void onMapClick(LatLng point) {
 				ContentValues mNewValues = new ContentValues();
+				Date timestamp = new Date();
 				mNewValues.putNull(FeedContract.Entry.COLUMN_NAME_POINT_ID);
 				mNewValues.put(FeedContract.Entry.COLUMN_NAME_LATITUDE,
-						point.latitude);
+						String.valueOf(point.latitude));
 				mNewValues.put(FeedContract.Entry.COLUMN_NAME_LONGITUDE,
-						point.longitude);
+						String.valueOf(point.longitude));
 				mNewValues.put(FeedContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
-						new Date().getTime());
+						timestamp.getTime());
 				mNewValues.put(FeedContract.Entry.COLUMN_NAME_TITLE,
-						"Some point");
-				mNewValues
-						.put(FeedContract.Entry.COLUMN_NAME_INFO, "Some info");
+						DEFAULT_TITLE);
+				mNewValues.put(FeedContract.Entry.COLUMN_NAME_INFO,
+						DEFAULT_DESCR);
 				mNewValues.put(FeedContract.Entry.COLUMN_NAME_ACCOUNT,
 						accountName);
-				Uri mNewUri = getActivity().getContentResolver().insert(
+				mNewValues.put(FeedContract.Entry.COLUMN_NAME_DIRTY, FALSE);
+				getActivity().getContentResolver().insert(
 						FeedContract.Entry.CONTENT_URI, mNewValues);
-				drawMarker(point, point.toString(), "No info");
+				drawMarker(point, DEFAULT_TITLE, DEFAULT_DESCR, timestamp);
 			}
 		});
 		googleMap
@@ -170,6 +206,22 @@ public class GoogleMapFragment extends Fragment {
 					@Override
 					public void onInfoWindowClick(Marker marker) {
 						openInputWindow(marker);
+					}
+				});
+		googleMap
+				.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+
+					@Override
+					public boolean onMarkerClick(Marker marker) {
+						if (pins.contains(marker))
+							return true;
+						if (isDeleteMode) {
+							deletePoint(marker);
+							tableOfPreviousPositions.remove(marker);
+							marker.remove();
+							return true;
+						} else
+							return false;
 
 					}
 				});
@@ -177,19 +229,29 @@ public class GoogleMapFragment extends Fragment {
 
 			@Override
 			public void onMarkerDragStart(Marker marker) {
-				
+
 			}
 
 			@Override
 			public void onMarkerDragEnd(Marker marker) {
-				// TODO Auto-generated method stub
+				latitudeLabel.setText(LATITUDE);
+				longitudeLabel.setText(LONGITUDE);
+				ContentValues updateValues = new ContentValues();
+				updateValues.put(FeedContract.Entry.COLUMN_NAME_LATITUDE,
+						String.valueOf(marker.getPosition().latitude));
+				updateValues.put(FeedContract.Entry.COLUMN_NAME_LONGITUDE,
+						String.valueOf(marker.getPosition().longitude));
+				updateValues.put(FeedContract.Entry.COLUMN_NAME_DIRTY, TRUE);
+				updatePoint(updateValues, tableOfPreviousPositions.get(marker));
+				tableOfPreviousPositions.put(marker, marker.getPosition());
+				marker.showInfoWindow();
 			}
 
 			@Override
 			public void onMarkerDrag(Marker marker) {
 				LatLng pos = marker.getPosition();
-				marker.setSnippet(pos.toString());
-				marker.showInfoWindow();
+				latitudeLabel.setText(LATITUDE + pos.latitude);
+				longitudeLabel.setText(LONGITUDE + pos.longitude);
 			}
 		});
 	}
@@ -204,17 +266,18 @@ public class GoogleMapFragment extends Fragment {
 		});
 	}
 
-	private void drawMarker(LatLng point, String title, String info) {
+	private void drawMarker(LatLng point, String title, String info, Date date) {
 		MarkerOptions markerOptions = new MarkerOptions();
 		BitmapDescriptor icon = BitmapDescriptorFactory
 				.fromResource(R.drawable.ic_marker);
 		markerOptions.position(point);
 		markerOptions.draggable(true);
-		markerOptions.anchor(0.5f, 1.0f);// center bottom of marker icon
 		markerOptions.icon(icon);
 		markerOptions.title(title);
-		markerOptions.snippet(info);
-		points.add(googleMap.addMarker(markerOptions));
+		markerOptions.snippet(info + DATE_DEF + date);
+		Marker newMarker = googleMap.addMarker(markerOptions);
+		points.add(newMarker);
+		tableOfPreviousPositions.put(newMarker, point);
 	}
 
 	private void drawPinPolygon(LatLng point) {
@@ -265,19 +328,54 @@ public class GoogleMapFragment extends Fragment {
 		}
 	}
 
+	private int updatePoint(ContentValues values, LatLng position) {
+		return getActivity().getContentResolver().update(
+				FeedContract.Entry.CONTENT_URI,
+				values,
+				SyncAdapter.ACCOUNT_FILTER + SyncAdapter.LAT_LONG_FILTER,
+				new String[] { accountName, String.valueOf(position.latitude),
+						String.valueOf(position.longitude) });
+	}
+
+	private void deletePoint(Marker marker) {
+		getActivity().getContentResolver().delete(
+				FeedContract.Entry.CONTENT_URI,
+				SyncAdapter.ACCOUNT_FILTER + SyncAdapter.LAT_LONG_FILTER,
+				new String[] { accountName,
+						String.valueOf(marker.getPosition().latitude),
+						String.valueOf(marker.getPosition().longitude) });
+	}
+
 	private void openInputWindow(final Marker marker) {
+		Context context = getActivity();
+		LinearLayout layout = new LinearLayout(context);
+		layout.setOrientation(LinearLayout.VERTICAL);
+		AlertDialog.Builder alert = new AlertDialog.Builder(context);
+		alert.setTitle("Type info about this point");
 
-		AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
-		alert.setTitle("Title");
-		alert.setMessage("Message");
+		final EditText inputTitle = new EditText(getActivity());
+		inputTitle.setText(marker.getTitle(), TextView.BufferType.EDITABLE);
+		layout.addView(inputTitle);
 
-		// Set an EditText view to get user input
-		final EditText input = new EditText(getActivity());
-		alert.setView(input);
+		final EditText inputDescription = new EditText(context);
+		inputDescription.setText(marker.getSnippet().split(DATE_DEF, 2)[0],
+				TextView.BufferType.EDITABLE);
+		layout.addView(inputDescription);
 
+		alert.setView(layout);
 		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int whichButton) {
-				marker.setSnippet(input.getText().toString());
+				String title = inputTitle.getText().toString();
+				String info = inputDescription.getText().toString();
+				marker.setTitle(title);
+				marker.setSnippet(info + DATE_DEF + new Date());
+				ContentValues updateValues = new ContentValues();
+				updateValues.put(FeedContract.Entry.COLUMN_NAME_TITLE, title);
+				updateValues.put(FeedContract.Entry.COLUMN_NAME_INFO, info);
+				updateValues.put(FeedContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
+						new Date().getTime());
+				updateValues.put(FeedContract.Entry.COLUMN_NAME_DIRTY, TRUE);
+				updatePoint(updateValues, marker.getPosition());
 				marker.showInfoWindow();
 			}
 		});

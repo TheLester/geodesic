@@ -25,7 +25,7 @@
     <string-array name="actions_types">
         <item>Direct Problem</item>
         <item>Undirect Problem</item>
-        <item>Clear content(debug)</item>
+        <item>Delete all markers</item>
         <item>Clear pins</item>
         <item>Search Location</item>
         <item>Switch account</item>
@@ -37,7 +37,7 @@
     <array name="nav_items_icons">
         <item>@drawable/ic_calc</item>
         <item>@drawable/ic_calc</item>
-        <item>@drawable/abc_ic_clear</item>
+        <item>@drawable/ic_tool</item>
         <item>@drawable/ic_clear</item>
         <item>@drawable/ic_searh</item>
         <item>@drawable/ic_signout</item>
@@ -55,6 +55,7 @@
     <string name="title_activity_about_program">About Program</string>
     <string name="action_settings">Map Types</string>
     <string name="description_refresh">Sync with server</string>
+     <string name="description_tool">Delete mode</string>
     <string name="lat1">Latitude1:</string>
     <string name="lon1">Longitude1:</string>
     <string name="lat2">Latitude2:</string>

@@ -37,8 +37,9 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 	private static Geopointinfoendpoint geopointInfoEndpoint;
 	private static GoogleAccountCredential credential;
 	public static final String ACCOUNT_FILTER = "account = ?";
+	public static final String LAT_LONG_FILTER = " AND latitude =? AND longitude =?";
 
-	private  static final String TAG = "SyncAdapter";
+	private static final String TAG = "SyncAdapter";
 	/**
 	 * Content resolver, for performing database operations.
 	 */
@@ -53,7 +54,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 			FeedContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
 			FeedContract.Entry.COLUMN_NAME_TITLE,
 			FeedContract.Entry.COLUMN_NAME_INFO,
-			FeedContract.Entry.COLUMN_NAME_ACCOUNT };
+			FeedContract.Entry.COLUMN_NAME_ACCOUNT,
+			FeedContract.Entry.COLUMN_NAME_DIRTY };
 	// Constants representing column positions from PROJECTION.
 	public static final int COLUMN_ID = 0;
 	public static final int COLUMN_POINT_ID = 1;
@@ -62,8 +64,9 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 	public static final int COLUMN_DATE_OF_INSERT = 4;
 	public static final int COLUMN_TITLE = 5;
 	public static final int COLUMN_INFO = 6;
-
+	public static final int COLUMN_DIRTY = 7;
 	private Account account;
+
 	public SyncAdapter(Context context, boolean autoInitialize) {
 		super(context, autoInitialize);
 		mContentResolver = context.getContentResolver();
@@ -108,7 +111,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 			Log.i(TAG, "Getting complete. Found " + entries.size() + " entries");
 			for (GeoPointInfo g : entries) {
 				Log.i(TAG, "Scheduling 1st insert: entry_id=" + g.getId());
-				insertToBatch(batch,g);
+				insertToBatch(batch, g);
 				nonInsertIDs.add(g.getId());
 				syncResult.stats.numInserts++;
 			}
@@ -121,31 +124,25 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 		Long dateOfInsert;
 		String title;
 		String info;
+		boolean isDirty;
 
 		while (c.moveToNext()) {
 			syncResult.stats.numEntries++;
 			id = c.getInt(COLUMN_ID);
 			pointId = c.getLong(COLUMN_POINT_ID);
-			latitude = c.getDouble(COLUMN_LATITUDE);
-			longitude = c.getDouble(COLUMN_LONGITUDE);
+			latitude = Double.valueOf(c.getString(COLUMN_LATITUDE));
+			longitude = Double.valueOf(c.getString(COLUMN_LONGITUDE));
 			dateOfInsert = c.getLong(COLUMN_DATE_OF_INSERT);
 			title = c.getString(COLUMN_TITLE);
 			info = c.getString(COLUMN_INFO);
-
+			isDirty = (c.getInt(COLUMN_DIRTY) == 1);
 			if (pointId != 0) {
 				nonInsertIDs.add(pointId);
 				GeoPointInfo geoPointToUpdate = getGeoPointFromDataStore(pointId);
 				// Check to see if the entry needs to be updated
 				Uri existingUri = FeedContract.Entry.CONTENT_URI.buildUpon()
 						.appendPath(Integer.toString(id)).build();
-				if ((geoPointToUpdate.getLongitude() != null && !geoPointToUpdate
-						.getLongitude().equals(longitude))
-						|| (geoPointToUpdate.getLatitude() != null && !geoPointToUpdate
-								.getLatitude().equals(latitude))
-						|| (geoPointToUpdate.getTitleInfo() != null && !geoPointToUpdate
-								.getTitleInfo().equals(title))
-						|| (geoPointToUpdate.getTextInfo() != null && !geoPointToUpdate
-								.getTextInfo().equals(info))) {
+				if (isDirty) {
 					// Update existing record
 					Log.i(TAG, "Scheduling update: " + existingUri);
 					try {
@@ -153,6 +150,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 						geoPointToUpdate.setLatitude(latitude);
 						geoPointToUpdate.setTitleInfo(title);
 						geoPointToUpdate.setTextInfo(info);
+						geoPointToUpdate.setTimestamp(dateOfInsert);
 						getEndpoint().updateGeoPointInfo(geoPointToUpdate)
 								.execute();
 					} catch (IOException e1) {
@@ -193,7 +191,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 			for (GeoPointInfo g : insertedRemoteEntries) {
 				if (!nonInsertIDs.contains(g.getId())) {
 					Log.i(TAG, "Scheduling insert: entry_id=" + g.getId());
-					insertToBatch(batch,g);
+					insertToBatch(batch, g);
 					syncResult.stats.numInserts++;
 				}
 			}
@@ -225,22 +223,19 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 			GeoPointInfo g) {
 		batch.add(ContentProviderOperation
 				.newInsert(FeedContract.Entry.CONTENT_URI)
-				.withValue(FeedContract.Entry.COLUMN_NAME_POINT_ID,
-						g.getId())
+				.withValue(FeedContract.Entry.COLUMN_NAME_POINT_ID, g.getId())
 				.withValue(FeedContract.Entry.COLUMN_NAME_LATITUDE,
 						g.getLatitude())
 				.withValue(FeedContract.Entry.COLUMN_NAME_LONGITUDE,
 						g.getLongitude())
-				.withValue(
-						FeedContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
+				.withValue(FeedContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
 						g.getTimestamp())
 				.withValue(FeedContract.Entry.COLUMN_NAME_TITLE,
 						g.getTitleInfo())
-				.withValue(FeedContract.Entry.COLUMN_NAME_INFO,
-						g.getTextInfo())
-				.withValue(FeedContract.Entry.COLUMN_NAME_ACCOUNT,
-						account.name).build());
-		
+				.withValue(FeedContract.Entry.COLUMN_NAME_INFO, g.getTextInfo())
+				.withValue(FeedContract.Entry.COLUMN_NAME_ACCOUNT, account.name)
+				.build());
+
 	}
 
 	private GeoPointInfo getGeoPointFromDataStore(Long id) {

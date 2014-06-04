@@ -1,4 +1,4 @@
-package com.dogar.geodesic.windows;
+package com.dogar.geodesic.screens;
 
 import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.GeodesicData;

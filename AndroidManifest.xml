@@ -38,16 +38,16 @@
 		<meta-data android:name="com.google.android.gms.version"
 			android:value="@integer/google_play_services_version" />
 		<provider android:name=".sync.FeedProvider"
-			android:authorities="com.dogar.geodesic" android:exported="false" />
+			android:authorities="com.dogar.geodesic" android:exported="true" />
 
 
-		<activity android:name="com.dogar.geodesic.windows.UndirectProblemActivity"
+		<activity android:name="com.dogar.geodesic.screens.UndirectProblemActivity"
 			android:label="@string/undirect_geodesic" android:parentActivityName="com.dogar.geodesic.map.StartActivity">
 			<!-- Parent activity meta-data to support 4.0 and lower -->
 			<meta-data android:name="android.support.PARENT_ACTIVITY"
 				android:value="com.dogar.geodesic.map.StartActivity" />
 		</activity>
-		<activity android:name="com.dogar.geodesic.windows.DirectProblemActivity"
+		<activity android:name="com.dogar.geodesic.screens.DirectProblemActivity"
 			android:label="@string/direct_geodesic" android:parentActivityName="com.dogar.geodesic.map.StartActivity">
 			<!-- Parent activity meta-data to support 4.0 and lower -->
 			<meta-data android:name="android.support.PARENT_ACTIVITY"

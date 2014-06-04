@@ -2,15 +2,31 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <item
+        android:id="@+id/menu_tool"
+        android:icon="@drawable/ic_tool"
+        android:orderInCategory="100"
+        android:showAsAction="always"
+        android:title="@string/description_tool">
+        <menu>
+            <group android:checkableBehavior="all" >
+                <item
+                    android:id="@+id/delete_mode"
+                    android:orderInCategory="1"
+                    android:showAsAction="never"
+                    android:title="@string/description_tool" />
+            </group>
+        </menu>
+    </item>
+    <item
         android:id="@+id/menu_refresh"
         android:icon="@drawable/ic_refresh"
-        android:orderInCategory="1"
+        android:orderInCategory="101"
         android:showAsAction="always"
         android:title="@string/description_refresh"/>
     <item
         android:id="@+id/map_menu"
         android:icon="@drawable/ic_layer"
-        android:orderInCategory="101"
+        android:orderInCategory="102"
         android:showAsAction="always"
         android:title="@string/action_settings">
         <menu>

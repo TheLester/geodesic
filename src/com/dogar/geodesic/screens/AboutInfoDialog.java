@@ -1,4 +1,4 @@
-package com.dogar.geodesic.windows;
+package com.dogar.geodesic.screens;
 
 import com.dogar.geodesic.R;
 

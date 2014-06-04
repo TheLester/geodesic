@@ -38,6 +38,7 @@ public class FeedContract {
 		public static final String COLUMN_NAME_TITLE = "title";
 		public static final String COLUMN_NAME_INFO = "info";
 		public static final String COLUMN_NAME_ACCOUNT = "account";
+		public static final String COLUMN_NAME_DIRTY = "dirty";
 	}
 
 }
