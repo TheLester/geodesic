@@ -1,7 +1,5 @@
 package com.dogar.geodesic.map;
 
-import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,36 +9,25 @@ import java.util.Map;
 import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.PolygonArea;
 import net.sf.geographiclib.PolygonResult;
-import android.accounts.Account;
+
 import android.app.AlertDialog;
 import android.app.Fragment;
-import android.content.ContentProviderOperation;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.dogar.geodesic.R;
 import com.dogar.geodesic.adapters.GeodesicInfoWindowAdapter;
-import com.dogar.geodesic.sync.FeedContract;
-import com.dogar.geodesic.sync.FeedProvider;
-import com.dogar.geodesic.sync.SyncAdapter;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
 import com.google.android.gms.maps.MapFragment;
@@ -51,9 +38,15 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
+import static com.dogar.geodesic.sync.PointsContract.Entry.*;
+import static com.dogar.geodesic.sync.SyncAdapter.*;
 
 /**
- * Created by lester on 3/22/14.
+ * * Fragment that displays Google Map with geodesic info.Contains methods to
+ * set and to delete markers/pins.
+ * 
+ * @author lester
+ *
  */
 public class GoogleMapFragment extends Fragment {
 	private final String PERIMETER = "Perimeter:";
@@ -134,11 +127,12 @@ public class GoogleMapFragment extends Fragment {
 		perimeterLabel.setText(PERIMETER + 0 + METERS);
 	}
 
-	public void clearMarkers() {
+	public void clearMarkersAndDrawNew() {
 		for (Marker point : points)
 			point.remove();
 		points.clear();
 		tableOfPreviousPositions.clear();
+		drawMarkersFromLocal();
 	}
 
 	public void clearMapForNewUser() {
@@ -159,19 +153,18 @@ public class GoogleMapFragment extends Fragment {
 
 	private void drawMarkersFromLocal() {
 		this.accountName = settings.getString("ACCOUNT_NAME", null);
-		Cursor c = getActivity().getContentResolver().query(
-				FeedContract.Entry.CONTENT_URI, SyncAdapter.PROJECTION,
-				SyncAdapter.ACCOUNT_FILTER, new String[] { accountName }, null);
+		Cursor c = getActivity().getContentResolver().query(CONTENT_URI,
+				PROJECTION, ACCOUNT_FILTER, new String[] { accountName }, null);
 		while (c.moveToNext()) {
-			Double latitude = Double.valueOf(c
-					.getString(SyncAdapter.COLUMN_LATITUDE));
-			Double longitude = Double.valueOf(c
-					.getString(SyncAdapter.COLUMN_LONGITUDE));
-			Long dateOfInsert = c.getLong(SyncAdapter.COLUMN_DATE_OF_INSERT);
-			String title = c.getString(SyncAdapter.COLUMN_TITLE);
-			String info = c.getString(SyncAdapter.COLUMN_INFO);
-			drawMarker(new LatLng(latitude, longitude), title, info, new Date(
-					dateOfInsert));
+			Double latitude = Double.valueOf(c.getString(COLUMN_LATITUDE));
+			Double longitude = Double.valueOf(c.getString(COLUMN_LONGITUDE));
+			Long dateOfInsert = c.getLong(COLUMN_DATE_OF_INSERT);
+			String title = c.getString(COLUMN_TITLE);
+			String info = c.getString(COLUMN_INFO);
+			boolean isDeleted = (c.getInt(COLUMN_DELETE) == TRUE);
+			if (!isDeleted)
+				drawMarker(new LatLng(latitude, longitude), title, info,
+						new Date(dateOfInsert));
 		}
 	}
 
@@ -182,22 +175,19 @@ public class GoogleMapFragment extends Fragment {
 			public void onMapClick(LatLng point) {
 				ContentValues mNewValues = new ContentValues();
 				Date timestamp = new Date();
-				mNewValues.putNull(FeedContract.Entry.COLUMN_NAME_POINT_ID);
-				mNewValues.put(FeedContract.Entry.COLUMN_NAME_LATITUDE,
+				mNewValues.putNull(COLUMN_NAME_POINT_ID);
+				mNewValues.put(COLUMN_NAME_LATITUDE,
 						String.valueOf(point.latitude));
-				mNewValues.put(FeedContract.Entry.COLUMN_NAME_LONGITUDE,
+				mNewValues.put(COLUMN_NAME_LONGITUDE,
 						String.valueOf(point.longitude));
-				mNewValues.put(FeedContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
-						timestamp.getTime());
-				mNewValues.put(FeedContract.Entry.COLUMN_NAME_TITLE,
-						DEFAULT_TITLE);
-				mNewValues.put(FeedContract.Entry.COLUMN_NAME_INFO,
-						DEFAULT_DESCR);
-				mNewValues.put(FeedContract.Entry.COLUMN_NAME_ACCOUNT,
-						accountName);
-				mNewValues.put(FeedContract.Entry.COLUMN_NAME_DIRTY, FALSE);
-				getActivity().getContentResolver().insert(
-						FeedContract.Entry.CONTENT_URI, mNewValues);
+				mNewValues.put(COLUMN_NAME_DATE_OF_INSERT, timestamp.getTime());
+				mNewValues.put(COLUMN_NAME_TITLE, DEFAULT_TITLE);
+				mNewValues.put(COLUMN_NAME_INFO, DEFAULT_DESCR);
+				mNewValues.put(COLUMN_NAME_ACCOUNT, accountName);
+				mNewValues.put(COLUMN_NAME_DIRTY, FALSE);
+				mNewValues.put(COLUMN_NAME_DELETE, FALSE);
+				getActivity().getContentResolver().insert(CONTENT_URI,
+						mNewValues);
 				drawMarker(point, DEFAULT_TITLE, DEFAULT_DESCR, timestamp);
 			}
 		});
@@ -237,11 +227,11 @@ public class GoogleMapFragment extends Fragment {
 				latitudeLabel.setText(LATITUDE);
 				longitudeLabel.setText(LONGITUDE);
 				ContentValues updateValues = new ContentValues();
-				updateValues.put(FeedContract.Entry.COLUMN_NAME_LATITUDE,
+				updateValues.put(COLUMN_NAME_LATITUDE,
 						String.valueOf(marker.getPosition().latitude));
-				updateValues.put(FeedContract.Entry.COLUMN_NAME_LONGITUDE,
+				updateValues.put(COLUMN_NAME_LONGITUDE,
 						String.valueOf(marker.getPosition().longitude));
-				updateValues.put(FeedContract.Entry.COLUMN_NAME_DIRTY, TRUE);
+				updateValues.put(COLUMN_NAME_DIRTY, TRUE);
 				updatePoint(updateValues, tableOfPreviousPositions.get(marker));
 				tableOfPreviousPositions.put(marker, marker.getPosition());
 				marker.showInfoWindow();
@@ -330,17 +320,20 @@ public class GoogleMapFragment extends Fragment {
 
 	private int updatePoint(ContentValues values, LatLng position) {
 		return getActivity().getContentResolver().update(
-				FeedContract.Entry.CONTENT_URI,
+				CONTENT_URI,
 				values,
-				SyncAdapter.ACCOUNT_FILTER + SyncAdapter.LAT_LONG_FILTER,
+				ACCOUNT_FILTER + LAT_LONG_FILTER,
 				new String[] { accountName, String.valueOf(position.latitude),
 						String.valueOf(position.longitude) });
 	}
 
 	private void deletePoint(Marker marker) {
-		getActivity().getContentResolver().delete(
-				FeedContract.Entry.CONTENT_URI,
-				SyncAdapter.ACCOUNT_FILTER + SyncAdapter.LAT_LONG_FILTER,
+		ContentValues newValues = new ContentValues();
+		newValues.put(COLUMN_NAME_DELETE, TRUE);
+		getActivity().getContentResolver().update(
+				CONTENT_URI,
+				newValues,
+				ACCOUNT_FILTER + LAT_LONG_FILTER,
 				new String[] { accountName,
 						String.valueOf(marker.getPosition().latitude),
 						String.valueOf(marker.getPosition().longitude) });
@@ -370,11 +363,11 @@ public class GoogleMapFragment extends Fragment {
 				marker.setTitle(title);
 				marker.setSnippet(info + DATE_DEF + new Date());
 				ContentValues updateValues = new ContentValues();
-				updateValues.put(FeedContract.Entry.COLUMN_NAME_TITLE, title);
-				updateValues.put(FeedContract.Entry.COLUMN_NAME_INFO, info);
-				updateValues.put(FeedContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
+				updateValues.put(COLUMN_NAME_TITLE, title);
+				updateValues.put(COLUMN_NAME_INFO, info);
+				updateValues.put(COLUMN_NAME_DATE_OF_INSERT,
 						new Date().getTime());
-				updateValues.put(FeedContract.Entry.COLUMN_NAME_DIRTY, TRUE);
+				updateValues.put(COLUMN_NAME_DIRTY, TRUE);
 				updatePoint(updateValues, marker.getPosition());
 				marker.showInfoWindow();
 			}

@@ -41,26 +41,21 @@ public class PointSearcher {
 		alert.setNegativeButton("Cancel",
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int whichButton) {
-
 					}
 				});
 		alert.show();
 	}
-
+	
 	private void searchGeoPoint(String name) {
 		Geocoder geoCoder = new Geocoder(context, Locale.getDefault());
 		try {
 			List<Address> addresses = geoCoder.getFromLocationName(name, 5);
 			if (addresses.size() > 0) {
 
-				Double lat = (double) (addresses.get(0).getLatitude());
-				Double lon = (double) (addresses.get(0).getLongitude());
-
-				final LatLng user = new LatLng(lat, lon);
-
-				// Move the camera instantly to hamburg with a zoom of 15.
-				map.moveCamera(CameraUpdateFactory.newLatLngZoom(user, 15));
-
+				Double lat = addresses.get(0).getLatitude();
+				Double lon = addresses.get(0).getLongitude();
+				final LatLng searchPoint = new LatLng(lat, lon);
+				map.moveCamera(CameraUpdateFactory.newLatLngZoom(searchPoint, 15));
 				// Zoom in, animating the camera.
 				map.animateCamera(CameraUpdateFactory.zoomTo(10), 2000, null);
 			}

@@ -1,8 +1,6 @@
 package com.dogar.geodesic.model;
 
-/**
- * Created by lester on 3/22/14.
- */
+
 public class NavDrawerItem {
 
     private String title;
