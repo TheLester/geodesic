@@ -135,14 +135,6 @@ public class GoogleMapFragment extends Fragment {
 		drawMarkersFromLocal();
 	}
 
-	public void clearMapForNewUser() {
-		clearPins();
-		for (Marker point : points)
-			point.remove();
-		points.clear();
-		drawMarkersFromLocal();
-	}
-
 	public GoogleMap getMap() {
 		return googleMap;
 	}

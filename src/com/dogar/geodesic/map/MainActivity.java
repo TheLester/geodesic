@@ -18,10 +18,13 @@ package com.dogar.geodesic.map;
 
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.FragmentManager;
+import android.app.PendingIntent;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -34,6 +37,7 @@ import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -268,6 +272,15 @@ public class MainActivity extends Activity {
 	}
 
 	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		if (mSyncObserverHandle != null) {
+			ContentResolver.removeStatusChangeListener(mSyncObserverHandle);
+			mSyncObserverHandle = null;
+		}
+	}
+
+	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		switch (requestCode) {
@@ -276,7 +289,6 @@ public class MainActivity extends Activity {
 				String accountName = data.getExtras().getString(
 						AccountManager.KEY_ACCOUNT_NAME);
 				if (accountName != null) {
-
 					SharedPreferences.Editor editor = settings.edit();
 					editor.putString("ACCOUNT_NAME", accountName);
 					editor.commit();
@@ -332,8 +344,6 @@ public class MainActivity extends Activity {
 			GMFragment = new GoogleMapFragment();
 			fragmentManager.beginTransaction()
 					.replace(R.id.frame_container, GMFragment).commit();
-		} else {
-			GMFragment.clearMapForNewUser();
 		}
 	}
 
@@ -359,8 +369,8 @@ public class MainActivity extends Activity {
 			new PointSearcher(GMFragment.getMap(), this).showSearchDialog();
 			break;
 		case 7:
-			updateItemAndCloseDrawer(position);
-			removeAccountNameAndSignOut();
+			removeAccountName();
+			restartApp();
 			break;
 		case 9:
 			new AboutInfoDialog(this).showDialogWindow();
@@ -369,13 +379,18 @@ public class MainActivity extends Activity {
 			break;
 		}
 	}
-
-	private void updateItemAndCloseDrawer(int position) {
-		mDrawerList.setItemChecked(position, true);
-		mDrawerList.setSelection(position);
-		mDrawerLayout.closeDrawer(mDrawerList);
+	private void restartApp(){
+		Intent mStartActivity = new Intent(this, MainActivity.class);
+		int mPendingIntentId = 123456;
+		PendingIntent mPendingIntent = PendingIntent.getActivity(this,
+				mPendingIntentId, mStartActivity,
+				PendingIntent.FLAG_CANCEL_CURRENT);
+		AlarmManager mgr = (AlarmManager) this
+				.getSystemService(Context.ALARM_SERVICE);
+		mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100,
+				mPendingIntent);
+		System.exit(0);
 	}
-
 	// setAccountName definition
 	private void setAccountName(String accountName) {
 		credential.setSelectedAccountName(accountName);
@@ -383,11 +398,10 @@ public class MainActivity extends Activity {
 
 	}
 
-	private void removeAccountNameAndSignOut() {
+	private void removeAccountName() {
 		SharedPreferences.Editor editor = settings.edit();
 		editor.remove("ACCOUNT_NAME");
 		editor.commit();
-		chooseAccount();
 	}
 
 	private void chooseAccount() {

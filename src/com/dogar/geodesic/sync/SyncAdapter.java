@@ -44,7 +44,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 	 * Project used when querying content provider. Returns all known fields.
 	 */
 	public static final String[] PROJECTION = new String[] {
-			PointsContract.Entry._ID, PointsContract.Entry.COLUMN_NAME_POINT_ID,
+			PointsContract.Entry._ID,
+			PointsContract.Entry.COLUMN_NAME_POINT_ID,
 			PointsContract.Entry.COLUMN_NAME_LATITUDE,
 			PointsContract.Entry.COLUMN_NAME_LONGITUDE,
 			PointsContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
@@ -122,7 +123,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 				// Check to see if the entry needs to be updated
 				Uri existingUri = PointsContract.Entry.CONTENT_URI.buildUpon()
 						.appendPath(Integer.toString(id)).build();
-				if (isDirty) {
+				if (isDirty && geoPointToUpdate!=null) {
 					// Update existing record
 					Log.i(TAG, "Scheduling update: " + existingUri);
 					try {
@@ -138,22 +139,25 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 						e1.printStackTrace();
 					}
 					syncResult.stats.numUpdates++;
-					batch.add(ContentProviderOperation.newUpdate(existingUri)
-							.withValue(PointsContract.Entry.COLUMN_NAME_DIRTY, 0)
-							.build());
+					batch.add(ContentProviderOperation
+							.newUpdate(existingUri)
+							.withValue(PointsContract.Entry.COLUMN_NAME_DIRTY,
+									0).build());
 				} else {
 					Log.i(TAG, "No action: " + existingUri);
 				}
-				if (isDelete) {
+				Log.i(TAG, "isDELETE" + isDelete);
+				if (isDelete && geoPointToUpdate!=null) {
 					geoPointToUpdate.setDeleted(true);
 					try {
 						getEndpoint().updateGeoPointInfo(geoPointToUpdate)
 								.execute();
+						deleteEntry(id, batch);
+						syncResult.stats.numDeletes++;
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-					deleteEntry(id, batch);
-					syncResult.stats.numDeletes++;
+
 				}
 			} else if (pointId == 0) {
 				try {
@@ -163,32 +167,35 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 					geoPointToInsert.setTimestamp(dateOfInsert);
 					geoPointToInsert.setTitleInfo(title);
 					geoPointToInsert.setTextInfo(info);
-					if(isDelete) geoPointToInsert.setDeleted(true);
+					if (isDelete)
+						geoPointToInsert.setDeleted(true);
 					getEndpoint().insertGeoPointInfo(geoPointToInsert)
 							.execute();
 					Log.i(TAG, "Sheduling insert to datastore point latitude"
 							+ latitude + ",longitude-" + longitude);
+					// delete
+					deleteEntry(id, batch);
+					syncResult.stats.numDeletes++;
 				} catch (IOException e1) {
 					Log.i(TAG, "Exception when insert to datastore");
 					e1.printStackTrace();
 				}
-				// delete
-				deleteEntry(id, batch);
-				syncResult.stats.numDeletes++;
 			}
 		}
 		c.close();
-		final List<GeoPointInfo> insertedRemoteEntries = getGeoPointsFromDataStore();
-			for (GeoPointInfo g : insertedRemoteEntries) {
-				if (!nonInsertIDs.contains(g.getId())) {
-					Log.i(TAG, "Scheduling insert: entry_id=" + g.getId());
-					insertToBatch(batch, g);
-					syncResult.stats.numInserts++;
-				}
+		List<GeoPointInfo> insertedRemoteEntries = getGeoPointsFromDataStore();
+		Log.i(TAG, "SIZE-" + insertedRemoteEntries.size());
+		for (GeoPointInfo g : insertedRemoteEntries) {
+			if (!nonInsertIDs.contains(g.getId())) {
+				Log.i(TAG, "Scheduling insert: entry_id=" + g.getId());
+				insertToBatch(batch, g);
+				syncResult.stats.numInserts++;
 			}
+		}
 		Log.i(TAG, "Merge solution ready. Applying batch update");
 		try {
-			mContentResolver.applyBatch(PointsContract.CONTENT_AUTHORITY, batch);
+			mContentResolver
+					.applyBatch(PointsContract.CONTENT_AUTHORITY, batch);
 		} catch (RemoteException e1) {
 			e1.printStackTrace();
 		} catch (OperationApplicationException e1) {
@@ -224,16 +231,17 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
 				.newInsert(PointsContract.Entry.CONTENT_URI)
 				.withValue(PointsContract.Entry.COLUMN_NAME_POINT_ID, g.getId())
 				.withValue(PointsContract.Entry.COLUMN_NAME_LATITUDE,
-						g.getLatitude())
+						String.valueOf(g.getLatitude()))
 				.withValue(PointsContract.Entry.COLUMN_NAME_LONGITUDE,
-						g.getLongitude())
+						String.valueOf(g.getLongitude()))
 				.withValue(PointsContract.Entry.COLUMN_NAME_DATE_OF_INSERT,
 						g.getTimestamp())
 				.withValue(PointsContract.Entry.COLUMN_NAME_TITLE,
 						g.getTitleInfo())
-				.withValue(PointsContract.Entry.COLUMN_NAME_INFO, g.getTextInfo())
-				.withValue(PointsContract.Entry.COLUMN_NAME_ACCOUNT, account.name)
-				.build());
+				.withValue(PointsContract.Entry.COLUMN_NAME_INFO,
+						g.getTextInfo())
+				.withValue(PointsContract.Entry.COLUMN_NAME_ACCOUNT,
+						account.name).build());
 
 	}
 
