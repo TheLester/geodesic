@@ -283,6 +283,8 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
+		if (resultCode == RESULT_CANCELED)
+			this.finish();
 		switch (requestCode) {
 		case REQUEST_ACCOUNT_PICKER:
 			if (data != null && data.getExtras() != null) {
@@ -379,7 +381,8 @@ public class MainActivity extends Activity {
 			break;
 		}
 	}
-	private void restartApp(){
+
+	private void restartApp() {
 		Intent mStartActivity = new Intent(this, MainActivity.class);
 		int mPendingIntentId = 123456;
 		PendingIntent mPendingIntent = PendingIntent.getActivity(this,
@@ -391,6 +394,7 @@ public class MainActivity extends Activity {
 				mPendingIntent);
 		System.exit(0);
 	}
+
 	// setAccountName definition
 	private void setAccountName(String accountName) {
 		credential.setSelectedAccountName(accountName);
