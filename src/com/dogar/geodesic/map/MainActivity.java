@@ -226,6 +226,10 @@ public class MainActivity extends Activity {
 			item.setChecked(true);
 	}
 
+	public static GoogleAccountCredential getCredential() {
+		return credential;
+	}
+
 	@Override
 	public void setTitle(CharSequence title) {
 		mTitle = title;
@@ -309,11 +313,7 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	public static GoogleAccountCredential getCredential() {
-		return credential;
-	}
-
-	public void setRefreshActionButtonState(boolean refreshing) {
+	private void setRefreshActionButtonState(boolean refreshing) {
 		if (mOptionsMenu == null) {
 			return;
 		}

@@ -11,11 +11,11 @@
 
     <ListView
         android:id="@+id/list_slidermenu"
-        android:layout_width="240dp"
+        android:layout_width="@dimen/navigation_drawer_list_size"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:choiceMode="singleChoice"
         android:divider="@color/list_divider"
-        android:dividerHeight="1dp"
+        android:dividerHeight="@dimen/navigation_drawer_divider_size"
         android:background="@color/list_background"/>
 </android.support.v4.widget.DrawerLayout>

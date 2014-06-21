@@ -20,9 +20,9 @@
         android:layout_alignParentTop="true"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="4dp"
-        android:background="#FFFFFF"
+        android:background="@color/text_background_on_map"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="#181447" />
+        android:textColor="@color/text_on_map" />
 
     <TextView
         android:id="@+id/perim_info"
@@ -32,9 +32,9 @@
         android:layout_alignParentTop="true"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="22dp"
-        android:background="#FFFFFF"
+        android:background="@color/text_background_on_map"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="#181447" />
+        android:textColor="@color/text_on_map" />
 
     <TextView
         android:id="@+id/latitude_info"
@@ -44,9 +44,9 @@
         android:layout_alignParentTop="true"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="432dp"
-        android:background="#FFFFFF"
+        android:background="@color/text_background_on_map"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="#181447" />
+        android:textColor="@color/text_on_map" />
 
     <TextView
         android:id="@+id/longitude_info"
@@ -56,8 +56,8 @@
         android:layout_alignParentTop="true"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="450dp"
-        android:background="#FFFFFF"
+        android:background="@color/text_background_on_map"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="#181447" />
+        android:textColor="@color/text_on_map" />
 
 </RelativeLayout>

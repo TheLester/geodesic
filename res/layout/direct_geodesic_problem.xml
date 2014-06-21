@@ -109,7 +109,7 @@
         android:layout_below="@+id/resultDi"
         android:layout_centerHorizontal="true"
         android:background="@color/list_item_title"
-        android:shadowColor="#6BA389"
+        android:shadowColor="@color/problem_calc_rezult_shadow"
         android:text="@string/nonres"
         android:textColor="@color/list_divider"
         android:textSize="16sp" />
