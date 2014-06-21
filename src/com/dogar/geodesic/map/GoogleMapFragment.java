@@ -94,7 +94,6 @@ public class GoogleMapFragment extends Fragment {
 		googleMap.setMyLocationEnabled(true);
 		googleMap.setInfoWindowAdapter(new GeodesicInfoWindowAdapter(
 				getActivity()));
-		setMapLongClickListener();
 		return rootView;
 	}
 
@@ -161,6 +160,13 @@ public class GoogleMapFragment extends Fragment {
 	}
 
 	private void setMapClickListeners() {
+		googleMap.setOnMapLongClickListener(new OnMapLongClickListener() {
+
+			@Override
+			public void onMapLongClick(LatLng point) {
+				drawPinPolygon(point);
+			}
+		});
 		googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
 
 			@Override
@@ -234,16 +240,6 @@ public class GoogleMapFragment extends Fragment {
 				LatLng pos = marker.getPosition();
 				latitudeLabel.setText(LATITUDE + pos.latitude);
 				longitudeLabel.setText(LONGITUDE + pos.longitude);
-			}
-		});
-	}
-
-	private void setMapLongClickListener() {
-		googleMap.setOnMapLongClickListener(new OnMapLongClickListener() {
-
-			@Override
-			public void onMapLongClick(LatLng point) {
-				drawPinPolygon(point);
 			}
 		});
 	}
