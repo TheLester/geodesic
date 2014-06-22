@@ -16,7 +16,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class UndirectProblemActivity extends Activity {
+public class IndirectProblemActivity extends Activity {
 	private EditText lat1Edit;
 	private EditText lat2Edit;
 	private EditText lon1Edit;

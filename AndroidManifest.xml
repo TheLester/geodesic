@@ -37,7 +37,7 @@
 			android:authorities="com.dogar.geodesic" android:exported="false" />
 
 
-		<activity android:name="com.dogar.geodesic.screens.UndirectProblemActivity"
+		<activity android:name="com.dogar.geodesic.screens.IndirectProblemActivity"
 			android:label="@string/undirect_geodesic" android:parentActivityName="com.dogar.geodesic.map.MainActivity">
 			<!-- Parent activity meta-data to support 4.0 and lower -->
 			<meta-data android:name="android.support.PARENT_ACTIVITY"

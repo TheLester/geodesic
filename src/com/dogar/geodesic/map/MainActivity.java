@@ -50,7 +50,7 @@ import com.dogar.geodesic.R;
 import com.dogar.geodesic.adapters.NavDrawerListAdapter;
 import com.dogar.geodesic.screens.AboutInfoDialog;
 import com.dogar.geodesic.screens.DirectProblemActivity;
-import com.dogar.geodesic.screens.UndirectProblemActivity;
+import com.dogar.geodesic.screens.IndirectProblemActivity;
 import com.dogar.geodesic.sync.PointsContract;
 import com.dogar.geodesic.sync.SyncAdapter;
 import com.dogar.geodesic.sync.SyncUtils;
@@ -357,7 +357,7 @@ public class MainActivity extends Activity {
 			startActivity(intentD);
 			break;
 		case 3:
-			Intent intentUnd = new Intent(this, UndirectProblemActivity.class);
+			Intent intentUnd = new Intent(this, IndirectProblemActivity.class);
 			startActivity(intentUnd);
 			break;
 		case 4:
